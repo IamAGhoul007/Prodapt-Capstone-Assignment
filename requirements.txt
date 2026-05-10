@@ -1,0 +1,17 @@
+pandas
+numpy
+matplotlib
+seaborn
+pyspark
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+pymysql
+psycopg2-binary
+scikit-learn
+joblib
+apache-airflow
+notebook
+requests
+python-dotenv

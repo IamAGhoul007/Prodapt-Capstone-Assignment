@@ -1,0 +1,44 @@
+# Environments
+venv/
+.env
+.venv
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Data & Warehouse
+data/
+*.db
+*.sqlite
+warehouse/*.db
+
+# ML Models
+ml/*.pkl
+ml/*.joblib
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+.eslintcache
+
+# Logs
+*.log
+spark_output*.txt
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
