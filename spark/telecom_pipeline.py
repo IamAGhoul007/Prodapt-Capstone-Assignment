@@ -80,7 +80,10 @@ def write(df, summaries, output_path):
 
 def main():
     spark = create_session()
-    raw_path, mapping_path, processed_path = os.path.abspath("../data/raw"), os.path.abspath("../data/raw/region_mapping.csv").replace("\\", "/"), "../data/processed/"
+    base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    raw_path = os.path.join(base_path, "data", "raw").replace("\\", "/")
+    mapping_path = os.path.join(raw_path, "region_mapping.csv").replace("\\", "/")
+    processed_path = os.path.join(base_path, "data", "processed").replace("\\", "/")
     
     df = clean(load(spark, raw_path))
     df = enrich(spark, df, mapping_path)
