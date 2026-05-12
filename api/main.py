@@ -58,6 +58,11 @@ def predict(req: PredictionRequest):
     if "error" in res: raise HTTPException(500, res["error"])
     return res
 
+@app.get("/regions", response_model=List[str])
+def get_regions():
+    df = run_query("SELECT DISTINCT region_name FROM dim_region ORDER BY region_name")
+    return df['region_name'].tolist()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

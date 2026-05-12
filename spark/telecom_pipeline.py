@@ -3,14 +3,28 @@ from pyspark.sql.functions import col, to_timestamp, hour, date_format, sum as _
 from pyspark.sql.types import StructType, StructField, StringType, DoubleType, LongType
 import os
 
-os.environ['HADOOP_HOME'] = os.path.abspath(".")
+# Create a minimal hadoop_home/bin directory so Spark can resolve HADOOP_HOME
+# without needing the real winutils.exe on Windows.
+_script_dir = os.path.dirname(os.path.abspath(__file__))
+_hadoop_home = os.path.join(_script_dir, "hadoop_home")
+_hadoop_bin  = os.path.join(_hadoop_home, "bin")
+os.makedirs(_hadoop_bin, exist_ok=True)
+os.environ["HADOOP_HOME"] = _hadoop_home
+os.environ["PATH"] = _hadoop_bin + os.pathsep + os.environ.get("PATH", "")
 
 def create_session():
+    temp_dir = os.path.join(_script_dir, "..", "spark_temp")
+    temp_dir = os.path.abspath(temp_dir).replace("\\", "/")
+    os.makedirs(temp_dir, exist_ok=True)
     return SparkSession.builder \
         .appName("TelecomNetworkIntelligence") \
-        .config("spark.sql.shuffle.partitions", "20") \
+        .master("local[1]") \
+        .config("spark.sql.shuffle.partitions", "1") \
+        .config("spark.local.dir", temp_dir) \
         .config("spark.hadoop.fs.file.impl", "org.apache.hadoop.fs.RawLocalFileSystem") \
+        .config("spark.hadoop.fs.hdfs.impl", "org.apache.hadoop.fs.RawLocalFileSystem") \
         .config("spark.hadoop.mapreduce.fileoutputcommitter.marksuccessfuljobs", "false") \
+        .config("spark.driver.memory", "2g") \
         .getOrCreate()
 
 def load(spark, path):
@@ -69,14 +83,15 @@ def aggregate(df):
     }
 
 def write(df, summaries, output_path):
-    pdf = df.withColumn("date", date_format(col("timestamp"), "yyyy-MM-dd")).toPandas()
-    usage_data_path = os.path.join(output_path, "usage_data")
-    if not os.path.exists(usage_data_path): os.makedirs(usage_data_path)
-    pdf.to_parquet(usage_data_path, partition_cols=['date'], index=False)
+    print("Writing usage data...")
+    df = df.withColumn("date", date_format(col("timestamp"), "yyyy-MM-dd"))
+    usage_data_path = os.path.join(output_path, "usage_data").replace("\\", "/")
+    df.coalesce(1).write.mode("overwrite").partitionBy("date").parquet(usage_data_path)
     
+    print("Writing summaries...")
     for name, s_df in summaries.items():
-        summary_file = os.path.join(output_path, f"summary_{name}.parquet")
-        s_df.toPandas().to_parquet(summary_file, index=False)
+        summary_file = os.path.join(output_path, f"summary_{name}.parquet").replace("\\", "/")
+        s_df.coalesce(1).write.mode("overwrite").parquet(summary_file)
 
 def main():
     spark = create_session()
@@ -88,7 +103,6 @@ def main():
     df = clean(load(spark, raw_path))
     df = enrich(spark, df, mapping_path)
     df.cache()
-    df = df.repartition("region_name")
     
     summaries = aggregate(df)
     write(df, summaries, processed_path)

@@ -1,87 +1,103 @@
 # Telecom Intelligence System
 
-An end-to-end analytics platform for telecom network performance and risk prediction.
+An end-to-end analytics platform for telecom network performance and risk prediction. This system integrates real-time data ingestion, PySpark processing, automated orchestration, and machine learning.
 
-## System Architecture
+## 🛠 System Architecture
 - **Data Engineering**: PySpark ETL pipeline for processing massive network logs.
-- **Orchestration**: Apache Airflow (running in WSL2 for Windows users).
+- **Orchestration**: Apache Airflow (WSL2) or Native Windows Runner.
 - **Warehouse**: SQL-based star schema warehouse (SQLite).
-- **Machine Learning**: Scikit-learn model for network congestion and risk prediction.
-- **Backend**: FastAPI REST API providing analytics endpoints.
-- **Frontend**: React-based dashboard for real-time visualization.
+- **Machine Learning**: Scikit-learn Random Forest model for risk prediction.
+- **Backend**: FastAPI REST API providing analytics and ML endpoints.
+- **Frontend**: React (Vite) dashboard for real-time visualization.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Execution Guide (Step-by-Step)
 
-### 1. Prerequisites
-- **Python 3.11+**
-- **Node.js & npm**
-- **WSL2 (Ubuntu)** (For Airflow on Windows)
+Follow these steps in separate terminals to start the complete system.
 
-### 2. Environment Setup
-Create and activate a virtual environment:
+### 1. Environment Setup (First time only)
+Open a terminal in the project root:
 ```powershell
+# Create and activate virtual environment
 python -m venv venv
 .\venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### 3. Starting the Services
-
-#### A. Backend API
-```powershell
-python api/main.py
-```
-*Accessible at: http://localhost:8000/docs*
-
-#### B. React Dashboard
-```powershell
+# Install frontend dependencies
 cd react-app
 npm install
+cd ..
+```
+
+### 2. Orchestration & Data Pipeline (Choose ONE)
+
+#### Option A: Native Windows Runner (Recommended for Quick Testing)
+If you are on Windows and don't want to use WSL, use the provided emulator:
+```powershell
+.\venv\Scripts\activate
+python airflow_runner.py --loop
+```
+*This script emulates the Airflow DAG behavior, checking `data/landing/` for new files every 5 minutes.*
+
+#### Option B: Apache Airflow (WSL2 Ubuntu)
+1.  Open your **WSL terminal** (Ubuntu).
+2.  Run the following:
+    ```bash
+    export AIRFLOW_HOME="$(pwd)/airflow"
+    airflow standalone
+    ```
+*UI Accessible at: [http://localhost:8080](http://localhost:8080) (User: `admin` | Password: `VvACkbVRxstqFnkH`)*
+
+### 3. Start the Backend API
+```powershell
+.\venv\Scripts\activate
+python api/main.py
+```
+*API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)*
+
+### 4. Start the React Dashboard
+```powershell
+cd react-app
 npm run dev
 ```
-*Accessible at: http://localhost:5173*
-
-#### C. Airflow Orchestration (via WSL)
-Since Airflow requires a POSIX environment, it is set up to run in WSL (Ubuntu):
-
-1. **Launch WSL**: `wsl -d Ubuntu`
-2. **Set Environment**:
-   ```bash
-   export AIRFLOW_HOME="/mnt/d/network labs/telecom-intelligence/airflow"
-   export PATH="/root/airflow_venv/bin:$PATH"
-   ```
-3. **Start Airflow**:
-   ```bash
-   airflow standalone
-   ```
-*UI Accessible at: http://localhost:8080*
-*Credentials: User `admin` | Password `VvACkbVRxstqFnkH`*
-
-#### D. Windows Native Pipeline (Alternative)
-If you cannot use WSL, use the lightweight runner to execute the DAG logic:
-```powershell
-python airflow_runner.py
-```
+*Dashboard URL: [http://localhost:5173](http://localhost:5173)*
 
 ---
 
-## 🛠 Project Structure
-- `python/`: Scripts for exploratory data analysis.
-- `spark/`: PySpark ETL logic (`telecom_pipeline.py`).
-- `airflow/`: DAG definitions and orchestration logs.
-- `warehouse/`: Database schema and loading logic.
-- `api/`: FastAPI implementation.
-- `react-app/`: Frontend source code.
-- `ml/`: Model training and prediction logic.
-- `data/`: Data directories (`landing/`, `raw/`, `processed/`, `rejected/`).
+## 🧠 Machine Learning & Data Verification
+
+### Model Retraining
+If you find the prediction results are not sensitive enough, you can retrain the model with varied synthetic data:
+```powershell
+python scratch/retrain_model.py
+```
+
+### Database Health Check
+To reset the database with fresh, varied sample data for visualization:
+```powershell
+python scratch/fix_db.py
+```
 
 ---
 
 ## 📊 Data Pipeline Flow
-1. **Landing**: New CSV data arrives in `data/landing/`.
-2. **Validation**: Airflow detects and validates the schema.
-3. **Raw**: Valid files are moved to `data/raw/`.
-4. **Spark ETL**: PySpark cleans, enriches, and aggregates data into Parquet format.
-5. **Warehouse**: Processed data is loaded into the SQL Warehouse for API consumption.
+The system processes data through the following stages:
+1.  **Landing**: New CSVs arrive in `data/landing/`.
+2.  **Validation**: Schema and null checks.
+3.  **Spark Processing**: PySpark transforms raw data into Parquet in `data/processed/`.
+4.  **Warehouse Load**: Processed data is loaded into the Star Schema (`telecom.db`).
+5.  **Analytics**: API serves data to the React Dashboard.
+
+---
+
+## 📂 Project Structure
+- `api/`: FastAPI source code.
+- `react-app/`: Frontend React components.
+- `airflow/`: Airflow DAGs and metadata.
+- `ml/`: ML model (`model.pkl`) and prediction logic.
+- `spark/`: PySpark ETL transformation scripts.
+- `warehouse/`: SQLite database and schema.
+- `data/`: Data storage layers (Landing, Raw, Processed, Rejected).
